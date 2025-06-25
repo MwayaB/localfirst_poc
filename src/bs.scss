@@ -1,0 +1,77 @@
+// --------------------------------------------
+// Define custom theme colors BEFORE importing Bootstrap
+// -------------------------------------------- 
+$theme-colors: (
+  "primary": #005A9C,
+   "secondary": #444,
+  "success": #1a7f37,
+  "danger": #b22222,
+   "warning": #cc9900,
+   "info": #005a87,
+  "light": #f8f9fa,
+  "dark": #212529,
+  "pink": #e83e8c,
+ );
+
+// Optional: Override other Bootstrap variables here before import
+
+// --------------------------------------------
+// Import Bootstrap after variable overrides
+// --------------------------------------------
+@import "bootstrap/scss/bootstrap";
+
+
+// --------------------------------------------
+// Custom Utilities
+// --------------------------------------------
+$theme-colors: (
+  "primary": #005A9C,
+  "success": #1a7f37,
+  "danger": #b22222,
+  
+  // ...
+);
+
+.bg-success-dark {
+  background-color: #155724 !important;
+}
+
+.btn-contrast {
+  background-color: #006400 !important;
+  color: white !important;
+  border: none;
+}
+
+.bg-danger-contrast {
+  background-color: #b22222 !important;
+}
+.bg-success-contrast {
+  background-color: #1a7f37 !important;
+}
+
+.text-medium-dark {
+  color: #333 !important;
+}
+.border-dashed {
+  border-style: dashed !important;
+  border-color: #888 !important;
+}
+
+.bg-success-dark {
+  background-color: #155724 !important;
+}
+.btn-contrast {
+  background-color: #006400 !important;
+  color: white !important;
+  border: none;
+}
+.bg-danger-contrast {
+  background-color: #b22222 !important;
+}
+.text-medium-dark {
+  color: #333 !important;
+}
+.border-dashed {
+  border-style: dashed !important;
+  border-color: #888 !important;
+}
