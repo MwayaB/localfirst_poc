@@ -9,6 +9,8 @@ import { useLocation } from 'react-router-dom';
 import sqlite, { initializeSQLite } from './db';
 import HomeScreen from './components/HomeScreen';
 import { ServicesProvider } from './contexts/ServicesContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 function App() {
   const [dbInitialized, setDbInitialized] = useState(false);
@@ -42,10 +44,15 @@ function App() {
   );
 }
 
+const queryClient = new QueryClient();
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <Router>
-      <App />
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <ReactQueryDevtools initialIsOpen={true} />
+      <Router>
+        <App />
+      </Router>
+    </QueryClientProvider>
   </StrictMode>
 );

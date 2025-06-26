@@ -1,8 +1,12 @@
 import { Modal } from 'react-bootstrap'; 
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
+import { useAddVisit } from '../hooks/useVisits';
+import { useAddPatient } from '../hooks/usePatients';
 
 const NewArrivalModal = ({ isOpen, onClose, patientService, visitService }) => {
+  const { mutateAsync: addVisit } = useAddVisit();
+  const { mutateAsync: addPatient } = useAddPatient();
 
       const initialValues = {
         given_name: '',
@@ -52,13 +56,11 @@ const NewArrivalModal = ({ isOpen, onClose, patientService, visitService }) => {
                 };
 
                 
-                await patientService.insertPatients([patient]);
+                await addPatient([patient]);
 
-                await visitService.insertVisits([visit]);
-
-                alert('Patient and visit registered!');
+                await addVisit([visit]);
                 resetForm();
-                onClose(); // optionally close the modal
+                onClose();
             } catch (err) {
                 console.log('Error registering patient and visit:', err);
                 console.error(err);

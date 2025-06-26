@@ -1,43 +1,23 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
+import {  useAddVisit, useGetWaitingRoomList } from '../hooks/useVisits';
 import NewArrivalModal from './NewArrivalModal';
 
-const WaitingRoom = ({ visitService, patientService, collapsed }) => {
-  const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
+export const WaitingRoom = ({collapsed}) => {
+  const { data: waitingPatients, isLoading: visitsLoading } = useGetWaitingRoomList();
+
+  const [searchTerm, setSearchTerm] = useState('');
   const [now, setNow] = useState(new Date());
   const [isArrivalModalOpen, setIsArrivalModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // Refresh every second to update waiting times
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(new Date());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const data = await visitService.getSectionPatients('registration');
-        setPatients(data);
-      } catch (error) {
-        console.error('Error loading waiting room patients:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const interval = setInterval(() => {
+    setNow(new Date());
+  }, 1000);
 
-    fetchPatients();
-  }, [visitService]);
+  return () => clearInterval(interval); 
+}, []);
 
-  const getGenderColor = (gender) => {
-    if (gender?.toLowerCase() === 'male') return 'bg-primary';
-    if (gender?.toLowerCase() === 'female') return 'bg-pink';
-    return 'bg-secondary';
-  };
-
-  const getWaitTimeClass = (visitDate, visitStartTime) => {
+   const getWaitTimeClass = (visitDate, visitStartTime) => {
     if (!visitDate || !visitStartTime) return 'bg-secondary';
 
     const [year, month, day] = visitDate.split('-').map(Number);
@@ -47,11 +27,18 @@ const WaitingRoom = ({ visitService, patientService, collapsed }) => {
     if (isNaN(start.getTime())) return 'bg-secondary';
 
     const diffMins = Math.floor((now - start) / 60000);
-    if (diffMins < 0) return 'bg-secondary'; // future time
+    if (diffMins < 0) return 'bg-secondary'; 
 
     if (diffMins < 5) return 'bg-success';
     if (diffMins < 10) return 'bg-warning';
     return 'bg-danger';
+  };
+
+
+  const getGenderColor = (gender) => {
+    if (gender?.toLowerCase() === 'male') return 'bg-primary';
+    if (gender?.toLowerCase() === 'female') return 'bg-pink';
+    return 'bg-secondary';
   };
 
   const formatWaitTime = (visitDate, visitStartTime) => {
@@ -80,16 +67,7 @@ const WaitingRoom = ({ visitService, patientService, collapsed }) => {
     return parts.join(' ');
   };
 
-  // Filter patients by search term (case-insensitive)
-  const filteredPatients = useMemo(() => {
-    if (!searchTerm.trim()) return patients;
-    const term = searchTerm.toLowerCase();
-    return patients.filter((p) =>
-      `${p.given_name} ${p.family_name}`.toLowerCase().includes(term)
-    );
-  }, [patients, searchTerm]);
-
-  return (
+ return (
     <div className="flex-grow-1 bg-light p-4">
       <h4 className="mb-4">WAITING ROOM</h4>
 
@@ -103,9 +81,9 @@ const WaitingRoom = ({ visitService, patientService, collapsed }) => {
         aria-label="Search patients by name"
       />
 
-      {loading ? (
+      {visitsLoading ? (
         <div>Loading patients...</div>
-      ) : filteredPatients.length === 0 ? (
+      ) : waitingPatients.length === 0 ? (
         <div className="alert alert-info">
           <i className="bi bi-info-circle"></i> No patients found in the waiting room.
         </div>
@@ -125,15 +103,11 @@ const WaitingRoom = ({ visitService, patientService, collapsed }) => {
                 <div className="bg-danger rounded-circle me-2" style={{ width: '16px', height: '16px' }}></div>
                 <small>Waiting for 10+ minutes</small>
               </div>
-              <div className="d-flex align-items-center">
-                <div className="bg-secondary rounded-circle me-2" style={{ width: '16px', height: '16px' }}></div>
-                <small>Unknown/Invalid Time</small>
-              </div>
             </div>
           </div>
 
           <div className={`row g-4 ${collapsed ? 'row-cols-1 row-cols-sm-2 row-cols-md-4' : 'row-cols-1 row-cols-sm-2 row-cols-md-3'}`}>
-            {filteredPatients.map((patient) => (
+            {waitingPatients.map((patient) => (
               <div key={patient.patient_id} className="col">
                 <div className="card shadow-sm">
                   <div className={`card-header p-3 ${getWaitTimeClass(patient.visit_date, patient.visit_start_time)}`}></div>
@@ -154,7 +128,7 @@ const WaitingRoom = ({ visitService, patientService, collapsed }) => {
                       </div>
                     </div>
                     <div className="text-dark fw-semibold mb-1">
-                      Age: {patientService.calculateAge(patient.birthdate)}
+                      Age: {patient.age}
                     </div>
                     <div className="text-muted mb-1">
                       Visit #: <code>{patient.aetc_visit_number}</code>
@@ -195,8 +169,6 @@ const WaitingRoom = ({ visitService, patientService, collapsed }) => {
             <NewArrivalModal
               isOpen={isArrivalModalOpen}
               onClose={() => setIsArrivalModalOpen(false)}
-              patientService={patientService}
-              visitService={visitService}
             />
           </div>
         </>

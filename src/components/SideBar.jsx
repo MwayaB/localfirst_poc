@@ -7,7 +7,6 @@ const Sidebar = ({
   activeSection,
   setActiveSection,
   refreshData,
-  isInitialized,
   collapsed,
   setCollapsed,
 }) => {

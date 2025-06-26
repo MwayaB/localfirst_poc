@@ -1,24 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useGetSectionPatients } from '../hooks/useVisits';
+import { calculateAge } from '../utils/calculateAge.js';
 
-const TriageSection = ({ visitService, patientService }) => {
-  const [patients, setPatients] = useState([]);
+const TriageSection = () => {
   const [loading, setLoading] = useState(true);
+  const[ patientList, setPatientList] = useState([]);
+  const { data: triageList,  isLoading: visitsLoading} = useGetSectionPatients('triage');
+
 
   useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const data = await visitService.getSectionPatients('triage');
-        setPatients(data);
-      } catch (error) {
-        console.error('Error loading triage patients:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setPatientList(triageList || []);
 
-    fetchPatients();
-  }, [visitService]);
+  },[ triageList]);
+
 
   return (
     <div className="flex-grow-1 bg-light p-4">
@@ -31,15 +26,15 @@ const TriageSection = ({ visitService, patientService }) => {
         style={{ maxWidth: '300px' }}
       />
 
-      {loading ? (
+      {visitsLoading ? (
         <div>Loading triage patients...</div>
-      ) : patients.length === 0 ? (
+      ) : patientList.length === 0 ? (
         <div className="alert alert-info">
           <i className="bi bi-info-circle"></i> No patients currently in triage.
         </div>
       ) : (
         <div className="row g-4">
-          {patients.map((patient) => (
+          {patientList.map((patient) => (
             <div key={patient.patient_id} className="col-md-4">
               <div className="card shadow-sm">
                 <div className="card-header bg-warning-contrast p-3"></div>
@@ -59,7 +54,7 @@ const TriageSection = ({ visitService, patientService }) => {
                     </div>
                   </div>
                   <div className="text-dark fw-semibold mb-3">
-                    Age: {patientService.calculateAge(patient.birthdate)}
+                    Age: {calculateAge(patient.birthdate)}
                   </div>
                   <div className="text-muted mb-2">
                     Visit #: <code>{patient.aetc_visit_number}</code>
@@ -69,19 +64,6 @@ const TriageSection = ({ visitService, patientService }) => {
               </div>
             </div>
           ))}
-
-          {/* Add new patient shortcut (optional in triage) */}
-          <div className="col-md-4">
-            <Link
-              to="/register"
-              className="card h-100 text-center text-muted text-decoration-none border border-secondary border-dashed"
-            >
-              <div className="card-body d-flex flex-column align-items-center justify-content-center">
-                <div className="display-5">＋</div>
-                <div>Add New Patient</div>
-              </div>
-            </Link>
-          </div>
         </div>
       )}
     </div>

@@ -1,3 +1,5 @@
+import { calculateAge } from "../utils/calculateAge";
+
 const now = new Date();
 
 // Helper: formats a Date object to 'HH:mm' 24-hour time string
@@ -75,20 +77,28 @@ class VisitService {
     return (await this.dbService.selectVisits()).find(v => v.visit_id === visit_id);
   }
 
-  async getWaitingRoomPatients() {
-    const visits = await this.getVisitsByStep('registration');
-    const result = [];
-    debugger;
-    for (const visit of visits) {
-      const patient = await this.dbService.selectPatientById(visit.patient_id);
-      if (patient) {
-        result.push({ ...visit, patient });
-        console.log(`Found patient: ${patient.given_name} ${patient.family_name} for visit: ${visit.visit_id}`);
-      }
-    }
+async getWaitingRoomPatients() {
+  const visits = await this.getVisitsByStep('registration');
+  const result = [];
 
-    return result;
+  for (const visit of visits) {
+    const patientResult = await this.dbService.selectPatientById(visit.patient_id);
+    const patient = Array.isArray(patientResult) ? patientResult[0] : patientResult;
+
+    if (patient) {
+      patient.visit_date = visit.visit_date;
+      patient.visit_start_time = visit.visit_start_time;
+      patient.age = calculateAge(patient.birthdate)
+      result.push(patient);
+
+      console.log(`Found patient: ${patient.given_name} ${patient.family_name}`);
+    } else {
+      console.warn(`No patient found for visit ID: ${visit.visit_id}`);
+    }
   }
+  
+  return result;
+}
 
   async getVisitStatistics() {
   

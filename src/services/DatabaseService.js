@@ -103,13 +103,7 @@ async initializeSchema() {
       WHERE patient_id = ?;
     `, [patientId]);
 
-    if (rows.length === 0) return null;
- const columns = Object.keys(rows[0] || {});
-    const obj = {};
-    columns.forEach((col, idx) => {
-      obj[col] = rows[0][idx];
-    });
-    return obj;
+    return rows.map(row => ({ ...row }));
   }
 
   async selectPatientsByVisitStep(visitStep) {
@@ -169,15 +163,7 @@ async selectVisits() {
     ORDER BY visit_id;
   `);
 
-   const columns = Object.keys(rows[0] || {});
-
-  return rows.map(row => {
-    const obj = {};
-    columns.forEach((col, idx) => {
-      obj[col] = row[idx];
-    });
-    return obj;
-  });
+   return rows.map(row => ({ ...row }));
 }
 
 async selectVisitsByStatus(status) {
