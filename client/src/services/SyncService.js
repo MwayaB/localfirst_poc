@@ -6,7 +6,7 @@ export default class SyncService {
   }
 
   getLastSyncTimestamp() {
-    return localStorage.getItem('lastSync') || '1970-01-01T00:00:00.000Z';
+    return localStorage.getItem('lastSync') || null;
   }
 
   setLastSyncTimestamp(ts) {
