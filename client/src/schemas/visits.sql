@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS visits (
-  visit_id INTEGER PRIMARY KEY,
+  visit_id TEXT PRIMARY KEY,
   patient_id INTEGER,
   visit_date TEXT,
   visit_start_time TEXT,

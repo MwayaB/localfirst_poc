@@ -27,7 +27,7 @@ export default class SyncService {
       }
 
     };
-    debugger;
+
     const res = await fetch(this.SYNC_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

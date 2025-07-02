@@ -13,7 +13,7 @@ const pb = new PocketBase('http://127.0.0.1:8090');
 // Authenticate as a user (not admin API)
 async function login() {
   try {
-    await pb.admins.authWithPassword('test@example.com', '1234567890');
+    await pb.collection("_superusers").authWithPassword('test@example.com', '0123456789');
     console.log('Logged in to PocketBase as user');
   } catch (err) {
     console.error('PocketBase login failed:', err);
@@ -23,13 +23,16 @@ async function login() {
 
 // Ensure collections exist
 async function createCollections() {
+
   const getOrCreateCollection = async (def) => {
     try {
+        await pb.collection("_superusers").authWithPassword('test@example.com', '0123456789');
       const existing = await pb.collections.getOne(def.name);
       console.log(`Collection '${def.name}' already exists.`);
       return existing;
     } catch (err) {
       if (err?.status === 404) {
+        await pb.collection("_superusers").authWithPassword('test@example.com', '0123456789');
         const created = await pb.collections.create(def);
         console.log(`Collection '${def.name}' created.`);
         return created;
@@ -43,23 +46,21 @@ async function createCollections() {
   const patientsDef = {
     name: 'patients',
     type: 'base',
-    system: false,
-    schema: [
-      { name: 'latest_encounter_type', type: 'text', options: {} },
-      { name: 'given_name', type: 'text', required: true, options: {} },
-      { name: 'family_name', type: 'text', required: true, options: {} },
-      { name: 'aetc_visit_number', type: 'text', options: {} },
-      { name: 'birthdateEstimated', type: 'bool', defaultValue: false, options: {} },
-      { name: 'gender', type: 'text', options: {} },
-      { name: 'birthdate', type: 'date', options: {} },
-      { name: 'uuid', type: 'text', unique: true, options: {} },
-      { name: 'visit_uuid', type: 'text', options: {} },
-      { name: 'arrival_time', type: 'date', options: {} },
-      { name: 'triage_result', type: 'text', options: {} },
-      { name: 'latest_encounter_time', type: 'date', options: {} },
-      { name: 'updated_at', type: 'date', required: true, options: {} },
+    fields: [
+      { name: 'latest_encounter_type', type: 'text' },
+      { name: 'given_name', type: 'text', required: true },
+      { name: 'family_name', type: 'text', required: true },
+      { name: 'aetc_visit_number', type: 'text'  },
+      { name: 'birthdateEstimated', type: 'bool', defaultValue: false },
+      { name: 'gender', type: 'text'  },
+      { name: 'birthdate', type: 'date'  },
+      { name: 'uuid', type: 'text', unique: true  },
+      { name: 'visit_uuid', type: 'text'  },
+      { name: 'arrival_time', type: 'date'  },
+      { name: 'triage_result', type: 'text'  },
+      { name: 'latest_encounter_time', type: 'date'  },
+      { name: 'updated_at', type: 'date', required: true  },
     ],
-    options: {},
   };
 
   const patientsCollection = await getOrCreateCollection(patientsDef);
@@ -69,27 +70,22 @@ async function createCollections() {
   const visitsDef = {
     name: 'visits',
     type: 'base',
-    system: false,
-    schema: [
-      {
-        name: 'patient_id',
-        type: 'relation',
-        required: true,
+    fields: [
+      { name: 'patient_id', type: 'relation', required: true,
         options: {
-          collectionId: patientsCollection.id,
-          cascadeDelete: false,
-        },
-      },
-      { name: 'visit_date', type: 'date', options: {} },
-      { name: 'visit_start_time', type: 'text', options: {} },
-      { name: 'visit_status', type: 'text', options: {} },
-      { name: 'visit_step', type: 'text', options: {} },
-      { name: 'updated_at', type: 'date', required: true, options: {} },
+            collectionId: patientsCollection.id
+        }
+       },
+      { name: 'visit_date', type: 'date' },
+      { name: 'visit_start_time', type: 'text' },
+      { name: 'visit_status', type: 'text' },
+      { name: 'visit_step', type: 'text' },
+      { name: 'updated_at', type: 'date', required: true },
     ],
-    options: {},
   };
 
-  await getOrCreateCollection(visitsDef);
+  const visitsCollection = await getOrCreateCollection(visitsDef);
+  console.log(visitsCollection)
 }
 
 // Sync endpoint

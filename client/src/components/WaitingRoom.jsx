@@ -133,7 +133,7 @@ export const WaitingRoom = ({collapsed}) => {
                       Age: {patient.age}
                     </div>
                     <div className="text-muted mb-1">
-                      Visit #: <code>{patient.aetc_visit_number}</code>
+                      Visit #: <code>{patient.visit_id}</code>
                     </div>
                     <div className="text-muted mb-3">
                       Time Waiting:{' '}

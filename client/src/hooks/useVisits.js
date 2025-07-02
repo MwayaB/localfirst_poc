@@ -101,7 +101,6 @@ export const useUpdateVisitStatus = () => {
   return useMutation({
     mutationFn: async ({ visitId, newStatus, newStep }) => {
       if (!visitService) throw new Error('Visit service not initialized');
-      debugger;
       return visitService.updateVisitStatus(visitId, newStatus, newStep);
     },
     onSuccess: () => {

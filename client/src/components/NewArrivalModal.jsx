@@ -26,28 +26,20 @@ const NewArrivalModal = ({ isOpen, onClose, patientService, visitService }) => {
         const now = new Date();
             try {
                     const patientId = Date.now(); 
-                    const visitId = Date.now() + 1;
-                    
+ 
                     const randomLetter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
                     const visitNumber = `${randomLetter}${Math.floor(100 + Math.random() * 900)}`;
                     const patient = {
                         patient_id: patientId,
-                        latest_encounter_type: null,
                         given_name: values.given_name,
                         family_name: values.family_name,
-                        aetc_visit_number: visitNumber,
                         birthdateEstimated: 0,
                         gender: values.gender,
                         birthdate: values.birthdate,
-                        uuid: crypto.randomUUID(),
-                        visit_uuid: visitId.toString(), // link to visit
-                        arrival_time: new Date().toISOString(),
-                        triage_result: null,
-                        latest_encounter_time: null,
                     };
 
                 const visit = {
-                    visit_id: visitId,
+                    visit_id: visitNumber,
                     patient_id: patientId,
                     visit_date: now.toISOString().split('T')[0],
                     visit_start_time: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,

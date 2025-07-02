@@ -55,37 +55,28 @@ async initializeSchema() {
      await this.executeQuery(`
           INSERT INTO patients (
             patient_id,
-            latest_encounter_type,
             given_name,
             family_name,
-            aetc_visit_number,
             birthdateEstimated,
             gender,
             birthdate,
-            uuid,
             updated_at
           ) VALUES (
             $patient_id,
-            $latest_encounter_type,
             $given_name,
             $family_name,
-            $aetc_visit_number,
             $birthdateEstimated,
             $gender,
             $birthdate,
-            $uuid,
             $updated_at
           )
         `, {
           $patient_id: patient.patient_id,
-          $latest_encounter_type: patient.latest_encounter_type,
           $given_name: patient.given_name,
           $family_name: patient.family_name,
-          $aetc_visit_number: patient.aetc_visit_number,
           $birthdateEstimated: patient.birthdateEstimated,
           $gender: patient.gender,
           $birthdate: patient.birthdate,
-          $uuid: patient.uuid,
           $updated_at: patient.updated_at || new Date().toISOString(),
         });
     }
