@@ -128,15 +128,25 @@ async initializeSchema() {
   }
 
 async getUnsyncedPatients(lastSync) {
-  const { rows } = await this.executeQuery(
-    `SELECT *
-      FROM patients
-      WHERE updated_at > ?;
-    `,
-    [lastSync]
-  );
+  
+  if(lastSync){
+    const { rows } = await this.executeQuery(
+      `SELECT *
+        FROM patients
+        WHERE updated_at > ?;
+      `,
+      [lastSync]
+    );
+    return rows.map(row => ({ ...row }));
+  }
 
-  return rows.map(row => ({ ...row }));
+    const { rows } = await this.executeQuery(
+      `SELECT *
+        FROM patients
+     `
+    );
+    return rows.map(row => ({ ...row }));
+  
 }
 
 
@@ -251,6 +261,7 @@ async selectVisitWhereStatusNot(status) {
   }
 
   async getUnsyncedVisits(lastSync) {
+    if(lastSync){
       const { rows } = await this.executeQuery(
         `SELECT *
         FROM visits
@@ -259,6 +270,15 @@ async selectVisitWhereStatusNot(status) {
       );
 
       return rows.map(row => ({ ...row }));
+    }
+    
+     const { rows } = await this.executeQuery(
+        `SELECT *
+        FROM visits;`
+      );
+
+      return rows.map(row => ({ ...row }));
+
     }
 }
 

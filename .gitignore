@@ -4,3 +4,4 @@ dist/
 .env
 server/**/pb_migrations/
 server/**/pb_data/
+.vscode
