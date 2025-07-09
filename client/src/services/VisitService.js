@@ -1,13 +1,8 @@
-import { calculateAge } from "../utils/calculateAge";
+import { calculateAge, toTimeString } from "../utils/helpers";
 
 const now = new Date();
 
-// Helper: formats a Date object to 'HH:mm' 24-hour time string
-const toTimeString = (date) => {
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
-};
+
 
 const today = now.toISOString().split('T')[0];
 

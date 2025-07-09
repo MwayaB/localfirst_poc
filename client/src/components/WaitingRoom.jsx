@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import {  useAddVisit, useGetWaitingRoomList } from '../hooks/useVisits';
 import NewArrivalModal from './NewArrivalModal';
 import ScreeningModal from './ScreeningModal';
+;
 
 export const WaitingRoom = ({collapsed}) => {
   const { data: waitingPatients, isLoading: visitsLoading } = useGetWaitingRoomList();
-
   const [searchTerm, setSearchTerm] = useState('');
   const [now, setNow] = useState(new Date());
   const [isArrivalModalOpen, setIsArrivalModalOpen] = useState(false);
   const [screeningPatient, setScreeningPatient] = useState(null);
+
 
   useEffect(() => {
   const interval = setInterval(() => {
@@ -70,7 +71,7 @@ export const WaitingRoom = ({collapsed}) => {
   };
 
  return (
-    <div className="flex-grow-1 bg-light p-4">
+    <div className="flex-grow-1 bg-light p-4 min-vh-100">
       <h4 className="mb-4">WAITING ROOM</h4>
 
       <input
@@ -85,11 +86,7 @@ export const WaitingRoom = ({collapsed}) => {
 
       {visitsLoading ? (
         <div>Loading patients...</div>
-      ) : waitingPatients.length === 0 ? (
-        <div className="alert alert-info">
-          <i className="bi bi-info-circle"></i> No patients found in the waiting room.
-        </div>
-      ) : (
+      ) :(
         <>
           <div className="mb-3">
             <div className="d-flex flex-wrap gap-3">

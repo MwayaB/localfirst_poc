@@ -11,121 +11,146 @@ app.use(cors({
     credentials: true
 }));
 
+const clients = new Set();
+
+app.get('/sync/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  clients.add(res);
+
+  req.on('close', () => {
+    clients.delete(res);
+  });
+});
+
+function notifySyncComplete(data) {
+  for (const client of clients) {
+    const payload = {
+    type: "sync_complete",
+    timestamp: new Date().toISOString(),
+    data, // include your custom sync data here
+  };
+
+  const jsonString = JSON.stringify(payload);
+
+  for (const client of clients) {
+    client.write(`data: ${jsonString}\n\n`);
+  }
+  }
+}
+
 app.post('/sync', async (req, res) => {
-    const { lastSync, changes } = req.body;
+  const { lastSync, changes } = req.body;
 
-    try {
-        const pb = new PocketBase('http://127.0.0.1:8090');
-        await pb.collection("_superusers").authWithPassword('test@example.com', '0123456789');
+  try {
+    const pb = new PocketBase('http://127.0.0.1:8090');
+    await pb.collection("_superusers").authWithPassword('test@example.com', '0123456789');
 
-        const syncedPatients = [];
-        const syncedVisits = [];
+    const syncedPatients = [];
+    const syncedVisits = [];
 
-        // --- Sync Patients ---
-        for (const patient of changes.patients) {
-            const external_id = String(patient.patient_id);
-            const {
-                given_name,
-                family_name,
-                birthdateEstimated,
-                gender,
-                birthdate,
-                updated_at,
-                created_at
-            } = patient;
+    // --- Sync Patients ---
+    for (const patient of changes.patients) {
+      const external_id = String(patient.patient_id);
+      const {
+        given_name, family_name, birthdateEstimated, gender, birthdate, updated_at, created_at
+      } = patient;
 
-            const patientData = {
-                external_id,
-                given_name,
-                family_name,
-                birthdate_estimated: birthdateEstimated,
-                gender,
-                birthdate,
-                created_at,
-                updated_at,
-            };
+      const patientData = {
+        external_id,
+        given_name,
+        family_name,
+        birthdate_estimated: birthdateEstimated,
+        gender,
+        birthdate,
+        created_at,
+        updated_at,
+      };
 
-            try {
-                const existing = await pb.collection('patients').getFirstListItem(`external_id="${external_id}"`);
-                if (new Date(updated_at) > new Date(existing.updated_at)) {
-                    const updated = await pb.collection('patients').update(existing.id, patientData);
-                    syncedPatients.push(updated);
-                } else {
-                    syncedPatients.push(existing);
-                }
-            } catch (err) {
-                const created = await pb.collection('patients').create(patientData);
-                syncedPatients.push(created);
-            }
+      try {
+        const existing = await pb.collection('patients').getFirstListItem(`external_id="${external_id}"`);
+        if (new Date(updated_at) > new Date(existing.updated_at)) {
+          const updated = await pb.collection('patients').update(existing.id, patientData);
+          syncedPatients.push(updated);
+        } else {
+          syncedPatients.push(existing);
         }
-
-        // Helper map: external_id (from patient) -> PocketBase patient record ID
-        const patientMap = {};
-        for (const record of syncedPatients) {
-            patientMap[record.external_id] = record.id;
-        }
-
-        debugger;
-
-        // --- Sync Visits ---
-        for (const visit of changes.visits) {
-            const external_id = String(visit.visit_id);
-            const {
-                patient_id,
-                visit_date,
-                visit_start_time,
-                visit_status,
-                visit_step,
-                updated_at,
-                created_at
-            } = visit;
-
-            const combinedDateTime = new Date(`${visit_date}T${visit_start_time}:00Z`).toISOString();
-
-            const visitData = {
-                external_id,
-                patient: patientMap[String(patient_id)], // FK to PocketBase patient
-                visit_date,
-                visit_start_time: combinedDateTime,
-                visit_status,
-                visit_step,
-                created_at,
-                updated_at,
-            };
-
-            try {
-                const existing = await pb.collection('visits').getFirstListItem(`external_id="${external_id}"`);
-                if (new Date(updated_at) > new Date(existing.updated_at)) {
-                    const updated = await pb.collection('visits').update(existing.id, visitData);
-                    syncedVisits.push(updated);
-                } else {
-                    syncedVisits.push(existing);
-                }
-            } catch (err) {
-                const created = await pb.collection('visits').create(visitData);
-                syncedVisits.push(created);
-            }
-        }
-
-        // --- Fetch server-side updates since lastSync ---
-        const serverPatients = await pb.collection('patients').getFullList({
-            filter: lastSync ? `updated_at > "${lastSync}"` : '',
-        });
-
-        const serverVisits = await pb.collection('visits').getFullList({
-            filter: lastSync ? `updated_at > "${lastSync}"` : '',
-        });
-
-        res.json({
-            patients: serverPatients,
-            visits: serverVisits,
-            serverTime: new Date().toISOString()
-        });
-
-    } catch (error) {
-        console.error("Sync failed:", error);
-        res.status(500).json({ message: error.message });
+      } catch (err) {
+        const created = await pb.collection('patients').create(patientData);
+        syncedPatients.push(created);
+      }
     }
+
+    // Map external_id to PocketBase ID
+    const patientMap = {};
+    for (const record of syncedPatients) {
+      patientMap[record.external_id] = record.id;
+    }
+    
+    // --- Sync Visits ---
+    for (const visit of changes.visits) {
+      const external_id = String(visit.visit_id);
+      const {
+        patient_id, visit_date, visit_start_time, visit_status, visit_step, updated_at, created_at
+      } = visit;
+
+      const combinedDateTime = new Date(`${visit_date} ${visit_start_time}:00Z`).toISOString();
+
+      const visitData = {
+        external_id,
+        patient: patientMap[String(patient_id)],
+        visit_date,
+        visit_start_time: combinedDateTime,
+        visit_status,
+        visit_step,
+        created_at,
+        updated_at,
+      };
+
+      try {
+        const existing = await pb.collection('visits').getFirstListItem(`external_id="${external_id}"`);
+        if (new Date(updated_at) > new Date(existing.updated_at)) {
+          const updated = await pb.collection('visits').update(existing.id, visitData);
+          syncedVisits.push(updated);
+        } else {
+          syncedVisits.push(existing);
+        }
+      } catch (err) {
+        const created = await pb.collection('visits').create(visitData);
+        syncedVisits.push(created);
+      }
+    }
+    
+    
+
+    // --- Respond with updated records and current timestamp ---
+    const serverPatients = await pb.collection('patients').getFullList({
+      filter: lastSync ? `updated_at > "${lastSync}"` : '',
+    });
+
+    const serverVisits = await pb.collection('visits').getFullList({
+      filter: lastSync ? `updated_at > "${lastSync}"` : '',
+      expand: 'patient',
+    });
+    
+    // --- Notify all connected SSE clients (after full sync) ---
+    notifySyncComplete({
+      patients: serverPatients,
+      visits: serverVisits
+    });
+    
+    res.json({
+      patients: serverPatients,
+      visits: serverVisits,
+      serverTime: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error("Sync failed:", error);
+    res.status(500).json({ message: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
@@ -161,6 +186,7 @@ async function createCollections() {
                 { name: 'birthdateEstimated', type: 'bool' },
                 { name: 'external_id', type: 'text', presentable: true },
                 { name: 'gender', type: 'text' },
+                {name: 'birthdate', type: 'date'},
                 { name: 'created_at', type: 'date' },
                 { name: 'updated_at', type: 'date' },
             ],

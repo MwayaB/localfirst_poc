@@ -53,7 +53,7 @@ async initializeSchema() {
   try {
     for (const patient of patientsData) {
      await this.executeQuery(`
-          INSERT INTO patients (
+          INSERT OR IGNORE INTO patients (
             patient_id,
             given_name,
             family_name,
@@ -165,7 +165,7 @@ async getUnsyncedPatients(lastSync) {
 
     for (const visit of visitsData) {
       await this.executeQuery(`
-        INSERT INTO visits (
+        INSERT OR IGNORE INTO visits (
           visit_id, patient_id, visit_date, visit_start_time, visit_status, visit_step, updated_at
         ) VALUES (
           $visit_id, $patient_id, $visit_date, $visit_start_time, $visit_status, $visit_step, $updated_at
@@ -271,7 +271,7 @@ async selectVisitWhereStatusNot(status) {
 
       return rows.map(row => ({ ...row }));
     }
-    
+
      const { rows } = await this.executeQuery(
         `SELECT *
         FROM visits;`

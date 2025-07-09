@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useGetSectionPatients } from '../hooks/useVisits';
-import { calculateAge } from '../utils/calculateAge.js';
+import { calculateAge } from '../utils/helpers.js';
 
 const TriageSection = () => {
   const [loading, setLoading] = useState(true);

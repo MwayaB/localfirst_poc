@@ -3,7 +3,7 @@ import WaitingRoom from '../components/WaitingRoom';
 import TriageSection from '../components/TriageSection';
 import Navbar from './NavBar';
 import Sidebar from './SideBar';
-
+import { useServices } from '../hooks/useServices';
 import { useSeedPatients, useInitializeSchema } from '../hooks/usePatients';
 import { useVisitStats, useSeedVisits, useGetWaitingRoomList } from '../hooks/useVisits';
 
@@ -17,7 +17,7 @@ const HomeScreen = () => {
   const { mutateAsync: initializeSchema, isSuccess: isInitialized } = useInitializeSchema();
   const { data: stats, isLoading, isError, error } = useVisitStats();
   const { data: waitingPatients, isLoading: visitsLoading } = useGetWaitingRoomList();
-
+  const { syncService } = useServices();
 
   const counts = {
     waitingRoom: stats?.waitingRoom || 0,
@@ -31,8 +31,10 @@ const HomeScreen = () => {
       if (!isInitialized) {
         try {
           await initializeSchema();
-          await seedSamplePatients();
-          await seedVisits();
+          await syncService.sync();
+          useGetWaitingRoomList();
+          //await seedSamplePatients();
+          //await seedVisits();
 
         } catch (err) {
           console.error('Seeding error:', err);
@@ -41,7 +43,7 @@ const HomeScreen = () => {
     };
 
     initializeAndSeed();
-  }, [isInitialized,seedSamplePatients, seedVisits]);
+  }, [isInitialized]);
 
   const handleSearch = (e) => setSearchTerm(e.target.value);
 

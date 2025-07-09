@@ -24,7 +24,7 @@ export const useSeedPatients = () => {
 };
 
 export const useAddPatient = () => {
-  const { patientService, syncService } = useServices();
+  const { patientService } = useServices();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -42,7 +42,6 @@ export const useAddPatient = () => {
 
 
       try {
-        await syncService.sync();
       } catch (err) {
         console.error('Sync failed:', err);
       }

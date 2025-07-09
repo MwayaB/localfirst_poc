@@ -6,6 +6,9 @@ import SearchComboBox from './SearchComboBox';
 import FieldsContainer from './FieldsContainer';
 import { concepts, yesno, NO } from '../utils/constants';
 import { useUpdateVisitStatus } from '../hooks/useVisits';
+import { useServices } from '../hooks/useServices';
+
+
 
 const form = {
   referred: { name: 'referred', label: 'Was the patient referred?' },
@@ -44,7 +47,7 @@ const ScreeningModal = ({
 }) => {
 
 const { mutateAsync: updateVisitStatus } = useUpdateVisitStatus();
-
+const { syncService }= useServices;
 const handleSubmit = async (values, { resetForm }) => {
   try {
 
@@ -55,7 +58,7 @@ const handleSubmit = async (values, { resetForm }) => {
     if (values.urgent === 'no' && values.department) {
       await updateVisitStatus({ visitId, newStatus: 'discharged' });
     }
-
+    await syncService.sync();
     resetForm();
     onClose();
   } catch (err) {

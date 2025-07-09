@@ -65,7 +65,7 @@ export const useGetSectionPatients = (section) =>{
 }
 
 export const useAddVisit = () => {
-  const { visitService, syncService } = useServices();
+  const { visitService } = useServices();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -80,7 +80,7 @@ export const useAddVisit = () => {
       await visitService.insertVisits([timestampedVisit]);
 
       try {
-        await syncService.sync();
+      
       } catch (err) {
         console.error('Sync failed:', err);
       }
