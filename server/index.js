@@ -2,7 +2,6 @@ import PocketBase from 'pocketbase';
 import express from 'express';
 import cors from 'cors';
 
-
 const app = express();
 app.use(express.json());
 
@@ -26,23 +25,27 @@ app.get('/sync/events', (req, res) => {
 });
 
 function notifySyncComplete(data) {
-  for (const client of clients) {
-    const payload = {
+  const payload = {
     type: "sync_complete",
     timestamp: new Date().toISOString(),
-    data, // include your custom sync data here
+    data,
   };
-
+  
   const jsonString = JSON.stringify(payload);
 
+  // Fixed: Remove duplicate loop
   for (const client of clients) {
-    client.write(`data: ${jsonString}\n\n`);
-  }
+    try {
+      client.write(`data: ${jsonString}\n\n`);
+    } catch (error) {
+      console.error('Error writing to SSE client:', error);
+      clients.delete(client);
+    }
   }
 }
 
 app.post('/sync', async (req, res) => {
-  const { lastSync, changes } = req.body;
+  const { changes } = req.body; 
 
   try {
     const pb = new PocketBase('http://127.0.0.1:8090');
@@ -51,7 +54,7 @@ app.post('/sync', async (req, res) => {
     const syncedPatients = [];
     const syncedVisits = [];
 
-    // --- Sync Patients ---
+    // --- Sync Patients with Database-Level Conflict Resolution ---
     for (const patient of changes.patients) {
       const external_id = String(patient.patient_id);
       const {
@@ -66,30 +69,36 @@ app.post('/sync', async (req, res) => {
         gender,
         birthdate,
         created_at,
-        updated_at,
+        updated_at: updated_at || new Date().toISOString(),
       };
 
       try {
+        // Try to get existing record
         const existing = await pb.collection('patients').getFirstListItem(`external_id="${external_id}"`);
-        if (new Date(updated_at) > new Date(existing.updated_at)) {
+        
+        // Only update if incoming record is newer
+        if (new Date(patientData.updated_at) > new Date(existing.updated_at)) {
           const updated = await pb.collection('patients').update(existing.id, patientData);
           syncedPatients.push(updated);
         } else {
+          // Keep existing record
           syncedPatients.push(existing);
         }
       } catch (err) {
+        // Record doesn't exist, create new one
         const created = await pb.collection('patients').create(patientData);
         syncedPatients.push(created);
       }
     }
 
-    // Map external_id to PocketBase ID
+    // Create patient lookup map
     const patientMap = {};
-    for (const record of syncedPatients) {
+    const allPatients = await pb.collection('patients').getFullList();
+    for (const record of allPatients) {
       patientMap[record.external_id] = record.id;
     }
     
-    // --- Sync Visits ---
+    // --- Sync Visits with Database-Level Conflict Resolution ---
     for (const visit of changes.visits) {
       const external_id = String(visit.visit_id);
       const {
@@ -106,36 +115,39 @@ app.post('/sync', async (req, res) => {
         visit_status,
         visit_step,
         created_at,
-        updated_at,
+        updated_at: updated_at || new Date().toISOString(),
       };
 
       try {
+        // Try to get existing record
         const existing = await pb.collection('visits').getFirstListItem(`external_id="${external_id}"`);
-        if (new Date(updated_at) > new Date(existing.updated_at)) {
+        
+        // Only update if incoming record is newer
+        if (new Date(visitData.updated_at) > new Date(existing.updated_at)) {
           const updated = await pb.collection('visits').update(existing.id, visitData);
           syncedVisits.push(updated);
         } else {
+          // Keep existing record
           syncedVisits.push(existing);
         }
       } catch (err) {
+        // Record doesn't exist, create new one
         const created = await pb.collection('visits').create(visitData);
         syncedVisits.push(created);
       }
     }
-    
-    
 
-    // --- Respond with updated records and current timestamp ---
+    // --- Return ALL current server data ---
     const serverPatients = await pb.collection('patients').getFullList({
-      filter: lastSync ? `updated_at > "${lastSync}"` : '',
+      sort: '-updated_at'
     });
 
     const serverVisits = await pb.collection('visits').getFullList({
-      filter: lastSync ? `updated_at > "${lastSync}"` : '',
       expand: 'patient',
+      sort: '-updated_at'
     });
     
-    // --- Notify all connected SSE clients (after full sync) ---
+    // --- Notify all connected SSE clients ---
     notifySyncComplete({
       patients: serverPatients,
       visits: serverVisits
@@ -149,7 +161,10 @@ app.post('/sync', async (req, res) => {
 
   } catch (error) {
     console.error("Sync failed:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      message: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -166,8 +181,6 @@ app.listen(PORT, () => {
     })();
 });
 
-
-
 async function createCollections() {
     const pb = new PocketBase('http://127.0.0.1:8090');
     await pb.collection("_superusers").authWithPassword('test@example.com', '0123456789');
@@ -175,7 +188,7 @@ async function createCollections() {
     const collections = await pb.collections.getList();
     const existingNames = collections.items.map(c => c.name);
 
-    // --- Create 'patients' collection if it doesn't exist ---
+    // --- Create 'patients' collection with unique constraint ---
     if (!existingNames.includes('patients')) {
         await pb.collections.create({
             name: 'patients',
@@ -183,20 +196,23 @@ async function createCollections() {
             fields: [
                 { name: 'given_name', type: 'text', required: true },
                 { name: 'family_name', type: 'text' },
-                { name: 'birthdateEstimated', type: 'bool' },
+                { name: 'birthdate_estimated', type: 'bool' },
                 { name: 'external_id', type: 'text', presentable: true },
                 { name: 'gender', type: 'text' },
-                {name: 'birthdate', type: 'date'},
+                { name: 'birthdate', type: 'date' },
                 { name: 'created_at', type: 'date' },
                 { name: 'updated_at', type: 'date' },
             ],
+            indexes: [
+                'CREATE UNIQUE INDEX idx_patients_external_id ON patients (external_id)'
+            ]
         });
-        console.log('Created patients collection.');
+        console.log('Created patients collection with unique constraint.');
     } else {
         console.log('Patients collection already exists.');
     }
 
-    // --- Create 'visits' collection if it doesn't exist ---
+    // --- Create 'visits' collection with unique constraint ---
     if (!existingNames.includes('visits')) {
         const patientsCollection = await pb.collections.getOne('patients');
         await pb.collections.create({
@@ -217,8 +233,11 @@ async function createCollections() {
                 { name: 'updated_at', type: 'date' },
                 { name: 'external_id', type: 'text' },
             ],
+            indexes: [
+                'CREATE UNIQUE INDEX idx_visits_external_id ON visits (external_id)'
+            ]
         });
-        console.log('Created visits collection.');
+        console.log('Created visits collection with unique constraint.');
     } else {
         console.log('Visits collection already exists.');
     }

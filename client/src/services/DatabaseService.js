@@ -53,7 +53,7 @@ async initializeSchema() {
   try {
     for (const patient of patientsData) {
      await this.executeQuery(`
-          INSERT OR IGNORE INTO patients (
+          INSERT INTO patients (
             patient_id,
             given_name,
             family_name,
@@ -69,7 +69,14 @@ async initializeSchema() {
             $gender,
             $birthdate,
             $updated_at
-          )
+          ) ON CONFLICT(patient_id) DO UPDATE SET
+          given_name = excluded.given_name,
+          family_name = excluded.family_name,
+          birthdateEstimated = excluded.birthdateEstimated,
+          gender = excluded.gender,
+          birthdate = excluded.birthdate,
+          updated_at = excluded.updated_at
+        WHERE excluded.updated_at > patients.updated_at
         `, {
           $patient_id: patient.patient_id,
           $given_name: patient.given_name,
@@ -158,18 +165,37 @@ async getUnsyncedPatients(lastSync) {
     console.log('Visits table dropped successfully');
   }
 
- async insertVisits(visitsData) {
-  console.log('Inserting visits data:', visitsData);
+async insertVisits(visitsData) {
+  console.log('Upserting visits data:', visitsData);
   try {
     await this.executeQuery('BEGIN TRANSACTION');
 
     for (const visit of visitsData) {
       await this.executeQuery(`
-        INSERT OR IGNORE INTO visits (
-          visit_id, patient_id, visit_date, visit_start_time, visit_status, visit_step, updated_at
+        INSERT INTO visits (
+          visit_id,
+          patient_id,
+          visit_date,
+          visit_start_time,
+          visit_status,
+          visit_step,
+          updated_at
         ) VALUES (
-          $visit_id, $patient_id, $visit_date, $visit_start_time, $visit_status, $visit_step, $updated_at
+          $visit_id,
+          $patient_id,
+          $visit_date,
+          $visit_start_time,
+          $visit_status,
+          $visit_step,
+          $updated_at
         )
+        ON CONFLICT(visit_id) DO UPDATE SET
+          patient_id = excluded.patient_id,
+          visit_date = excluded.visit_date,
+          visit_start_time = excluded.visit_start_time,
+          visit_status = excluded.visit_status,
+          visit_step = excluded.visit_step,
+          updated_at = excluded.updated_at
       `, {
         $visit_id: visit.visit_id,
         $patient_id: visit.patient_id,
@@ -182,10 +208,10 @@ async getUnsyncedPatients(lastSync) {
     }
 
     await this.executeQuery('COMMIT');
-    console.log(`${visitsData.length} visits inserted successfully`);
+    console.log(`${visitsData.length} visits upserted successfully`);
   } catch (error) {
     await this.executeQuery('ROLLBACK');
-    console.error('Failed to insert visits:', error);
+    console.error('Failed to upsert visits:', error);
     throw error;
   }
 }
