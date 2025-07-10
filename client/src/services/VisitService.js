@@ -1,6 +1,6 @@
-import { calculateAge, toTimeString } from "../utils/helpers";
+import { calculateAge, toTimeString, now } from "../utils/helpers";
 
-const now = new Date();
+
 
 
 
@@ -59,8 +59,8 @@ class VisitService {
     return all.filter(v => v.visit_step === step);
   }
 
-  async updateVisitStatus(visit_id, newStatus, newStep) {
-    await this.dbService.updateVisitStatus(visit_id, newStatus, newStep);
+  async updateVisitStatus(visit_id, newStatus, newStep, updated_at) {
+    await this.dbService.updateVisitStatus(visit_id, newStatus, newStep, updated_at);
     return (await this.dbService.selectVisits()).find(v => v.visit_id === visit_id);
   }
 

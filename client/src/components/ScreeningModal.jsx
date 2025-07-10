@@ -6,7 +6,8 @@ import SearchComboBox from './SearchComboBox';
 import FieldsContainer from './FieldsContainer';
 import { concepts, yesno, NO } from '../utils/constants';
 import { useUpdateVisitStatus } from '../hooks/useVisits';
-import { useServices } from '../hooks/useServices';
+import { useSyncMutation } from '../hooks/useSync';
+import { now } from '../utils/helpers'
 
 
 
@@ -47,18 +48,20 @@ const ScreeningModal = ({
 }) => {
 
 const { mutateAsync: updateVisitStatus } = useUpdateVisitStatus();
-const { syncService }= useServices;
+const { mutateAsync: syncNow } = useSyncMutation();
+
 const handleSubmit = async (values, { resetForm }) => {
   try {
-
+  
     if (values.urgent === 'yes') {
-      await updateVisitStatus({ visitId, newStatus: 'screened', newStep: 'triage' });
+      await updateVisitStatus({ visitId, newStatus: 'screened', newStep: 'triage', updated_at: now.toISOString() });
     }
 
     if (values.urgent === 'no' && values.department) {
-      await updateVisitStatus({ visitId, newStatus: 'discharged' });
+      await updateVisitStatus({ visitId, newStatus: 'discharged', updated_at: now.toISOString() });
     }
-    await syncService.sync();
+
+    await syncNow();
     resetForm();
     onClose();
   } catch (err) {

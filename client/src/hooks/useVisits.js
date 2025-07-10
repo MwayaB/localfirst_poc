@@ -99,9 +99,9 @@ export const useUpdateVisitStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ visitId, newStatus, newStep }) => {
+    mutationFn: async ({ visitId, newStatus, newStep, updated_at }) => {
       if (!visitService) throw new Error('Visit service not initialized');
-      return visitService.updateVisitStatus(visitId, newStatus, newStep);
+      return visitService.updateVisitStatus(visitId, newStatus, newStep, updated_at);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visit-stats'] });

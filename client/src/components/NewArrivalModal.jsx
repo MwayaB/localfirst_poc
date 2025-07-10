@@ -3,12 +3,13 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { useAddVisit } from '../hooks/useVisits';
 import { useAddPatient } from '../hooks/usePatients';
-import { useServices } from '../hooks/useServices';
+import { useSyncMutation } from '../hooks/useSync';
+
 
 const NewArrivalModal = ({ isOpen, onClose }) => {
   const { mutateAsync: addVisit } = useAddVisit();
   const { mutateAsync: addPatient } = useAddPatient();
-  const { syncService } = useServices();
+  const { mutateAsync: syncNow } = useSyncMutation();
 
       const initialValues = {
         given_name: '',
@@ -52,7 +53,7 @@ const NewArrivalModal = ({ isOpen, onClose }) => {
                 
                 await addPatient([patient]);
                 await addVisit([visit]);
-                await syncService.sync();
+                await syncNow();
                 resetForm();
                 onClose();
             } catch (err) {

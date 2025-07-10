@@ -9,3 +9,5 @@ export const toTimeString = (date) => {
   const minutes = date.getUTCMinutes().toString().padStart(2, '0');
   return `${hours}:${minutes}`;
 };
+
+export const now = new Date();

@@ -255,21 +255,21 @@ async selectVisitWhereStatusNot(status) {
 
 
 
-  async updateVisitStatus(visitId, newStatus, newStep = null) {
+  async updateVisitStatus(visitId, newStatus, newStep = null, updated_at) {
   if (newStep !== null) {
     await this.executeQuery(`
       UPDATE visits
-      SET visit_status = ?, visit_step = ?
+      SET visit_status = ?, visit_step = ?, updated_at = ?
       WHERE visit_id = ?;
-    `, [newStatus, newStep, visitId]);
+    `, [newStatus, newStep, updated_at, visitId]);
 
     console.log(`Visit ${visitId} updated to status "${newStatus}" and step "${newStep}"`);
   } else {
     await this.executeQuery(`
       UPDATE visits
-      SET visit_status = ?
+      SET visit_status = ?, updated_at = ?
       WHERE visit_id = ?;
-    `, [newStatus, visitId]);
+    `, [newStatus, updated_at, visitId]);
 
     console.log(`Visit ${visitId} updated to status "${newStatus}"`);
   }

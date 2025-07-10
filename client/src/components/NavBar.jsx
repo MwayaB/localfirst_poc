@@ -1,3 +1,4 @@
+import {now} from '../utils/helpers'
 
 const Navbar = () => {
   return (
@@ -12,7 +13,7 @@ const Navbar = () => {
         <div className="fw-bold small">MaHIS (AETC)</div>
         <div className="small">
           Queen Elizabeth Central Hospital |
-          <span className="text-lime ms-1">2025-06-23 14:00</span>
+          <span className="text-lime ms-1">{now.toISOString().split('T')[0]}</span>
         </div>
       </div>
     </div>
